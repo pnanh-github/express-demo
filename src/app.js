@@ -6,7 +6,7 @@ var app = express();
 var path = require("path");
 
 var host = "0.0.0.0";
-var port = 8080;
+var port = 80;
 
 // Create express app
 app.use(bodyParser.urlencoded({ extended: true }));
