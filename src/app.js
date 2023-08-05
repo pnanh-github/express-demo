@@ -1,67 +1,67 @@
-var express = require('express');
-var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
-
+// Call all the required packages
+var express = require("express");
+var bodyParser = require("body-parser");
+var multer = require("multer");
 var app = express();
+var path = require("path");
 
-// view engine setup
-app.set('views', path.join(__dirname, '/views'));
-app.set('view engine', 'jade');
+var host = "0.0.0.0";
+var port = 8080;
 
-// uncomment after placing your favicon in /public
-//app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
-app.use(logger('dev'));
-app.use(bodyParser.json());
+// Create express app
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, '/public')));
 
-
-var routes = require('./routes/index');
-var products = require('./routes/products');
-var appproduct = require('./routes/app-product');
-var appproductangular = require('./routes/app-product-angular');
-var appproductvue = require('./routes/app-product-vue');
-
-app.use('/', routes);
-app.use('/api/products', products);
-app.use('/app', appproduct);
-app.use('/angularapp', appproductangular);
-app.use('/vueapp', appproductvue);
-
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
+// Create storage
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads");
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname);
+  }
 });
 
-// error handlers
+var upload = multer({ storage: storage });
 
-// development error handler
-// will print stacktrace
-if (app.get('env') === 'development') {
-  app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    res.render('error', {
-      message: err.message,
-      error: err
-    });
-  });
-}
+// Routes will go here
 
-// production error handler
-// no stacktraces leaked to user
-app.use(function(err, req, res, next) {
-  res.status(err.status || 500);
-  res.render('error', {
-    message: err.message,
-    error: {}
+/**
+ * Uploading multiple files with field 'file'
+ * @api /upload/media
+ * @method POST
+ *
+ */
+app.post("/upload/media", upload.array("file"), (req, res, next) => {
+  const files = req.files;
+  res.status(200).send({
+    data: {
+      urls: files.map((item) => `http://${host}:${port}/files/${item.filename}`)
+    },
+    error: 0,
+    message: "Success"
   });
 });
 
+/**
+ * Getting file with name
+ * @api /files/:name
+ * @method GET
+ *
+ */
+app.get("/files/:name", (req, res) => {
+  const fileName = req.params.name;
+  const directoryPath = path.join(__dirname, "uploads/");
 
-module.exports = app;
+  res.sendFile(`${directoryPath}${fileName}`, fileName, (err) => {
+    if (err) {
+      try {
+        res.status(500).send({
+          message: "Could not get the file. " + err
+        });
+      } catch (e) {}
+    }
+  });
+});
+
+// Server started on port 8080
+app.listen(port, () => console.log(`Server started on port ${port}`));
